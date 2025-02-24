@@ -7,6 +7,10 @@ using Wpf.Ui.Controls;
 using System.Windows.Media;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Documents;
+using Microsoft.Win32;
+using System.Globalization;
+using System.Text.Json;
 
 namespace LiveCaptionsTranslator
 {
@@ -35,22 +39,23 @@ namespace LiveCaptionsTranslator
                 );
             };
             Loaded += (sender, args) => RootNavigation.Navigate(typeof(CaptionPage));
+
+            WindowsStateRestore();
+            ToggleTopmost(App.Settings.Topmost);
         }
 
         void TopmostButton_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
+            ToggleTopmost(!Topmost);
+        }
+
+        private void ToggleTopmost(bool enable)
+        {
+            var button = topmost as Button;
             var symbolIcon = button?.Icon as SymbolIcon;
-            if (Topmost)
-            {
-                Topmost = false;
-                symbolIcon.Filled = false;
-            }
-            else
-            {
-                Topmost = true;
-                symbolIcon.Filled = true;
-            }
+            Topmost = enable;
+            symbolIcon.Filled = enable;
+            App.Settings.Topmost = enable;
         }
 
         void PauseButton_Click(object sender, RoutedEventArgs e)
@@ -78,6 +83,8 @@ namespace LiveCaptionsTranslator
 
             if (subtitleWindow == null)
             {
+                OverlayTranslationModeClose();
+
                 subtitleWindow = new Window
                 {
                     Title = "Subtitle Mode",
@@ -287,6 +294,16 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        void SubtitleMode_Close()
+        {
+            subtitleWindow?.Close();
+            subtitleWindow = null;
+
+            var button = subtitleMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
+        }
+
         // TODO: Extract them into a new SubtitleWindow class.
         void TranslationOnlyButton_Click(object sender, RoutedEventArgs e)
         {
@@ -294,6 +311,8 @@ namespace LiveCaptionsTranslator
 
             if (translationOnlyWindow == null)
             {
+                SubtitleMode_Close();
+
                 translationOnlyWindow = new Window
                 {
                     Title = "Translation Only Mode",
@@ -323,7 +342,10 @@ namespace LiveCaptionsTranslator
                     Foreground = new SolidColorBrush(Colors.White),
                     TextWrapping = TextWrapping.Wrap,
                     Padding = new Thickness(10),
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextAlignment = TextAlignment.Left,
+                    LineHeight = 24,
+                    FontFamily = new FontFamily("Microsoft YaHei")
                 };
                 translatedText.SetBinding(SystemControls.TextBlock.TextProperty, new Binding("TranslatedCaption") { Source = App.Captions });
 
@@ -434,6 +456,16 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        void OverlayTranslationModeClose()
+        {
+            translationOnlyWindow?.Close();
+            translationOnlyWindow = null;
+
+            var button = translationOnlyMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
+        }
+
         private void Logonly_OnClickButton_Click(object sender, RoutedEventArgs e)
         {
             if (logonly.Icon is SymbolIcon icon)
@@ -458,6 +490,34 @@ namespace LiveCaptionsTranslator
             subtitleWindow?.Close();
             translationOnlyWindow?.Close();
             base.OnClosed(e);
+
+            WindowsStateSave();
+        }
+
+        private void WindowsStateRestore()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\WinRegistry");
+            if (key != null)
+            {
+                int Width = int.Parse(key.GetValue("Width").ToString());
+                int Height = int.Parse(key.GetValue("Height").ToString());
+                int Top = int.Parse(key.GetValue("Top").ToString());
+                int Left = int.Parse(key.GetValue("Left").ToString());
+                this.Width = Width;
+                this.Height = Height;
+                this.Top = Top;
+                this.Left = Left;
+            }
+        }
+
+        private void WindowsStateSave()
+        {
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\WinRegistry");
+            key.SetValue("Width", (int)this.Width);
+            key.SetValue("Height", (int)this.Height);
+            key.SetValue("Top", (int)this.Top);
+            key.SetValue("Left", (int)this.Left);
+            key.Close();
         }
     }
 }
