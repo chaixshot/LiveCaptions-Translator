@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Documents;
+using Microsoft.Win32;
 
 namespace LiveCaptionsTranslator
 {
@@ -38,6 +39,7 @@ namespace LiveCaptionsTranslator
             Loaded += (sender, args) => RootNavigation.Navigate(typeof(CaptionPage));
 
             EnableHistoryLog(App.Settings.EnableCaptionLog);
+            WindowsStateRestore();
         }
 
         void TopmostButton_Click(object sender, RoutedEventArgs e)
@@ -75,12 +77,13 @@ namespace LiveCaptionsTranslator
         }
 
         // TODO: Extract them into a new SubtitleWindow class.
-        void SubtitleModeButton_Click(object sender, RoutedEventArgs e)
+        void OverlaySubtitleModeButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not WpfButton button || button.Icon is not SymbolIcon symbolIcon) return;
 
             if (subtitleWindow == null)
             {
+                Close_OverlayTranslationMode();
                 subtitleWindow = new Window
                 {
                     Title = "Subtitle Mode",
@@ -290,16 +293,27 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        void Close_OverlaySubtitleMode()
+        {
+            subtitleWindow?.Close();
+            subtitleWindow = null;
+
+            var button = overlaySubtitleMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
+        }
+
         // TODO: Extract them into a new SubtitleWindow class.
-        void TranslationOnlyButton_Click(object sender, RoutedEventArgs e)
+        void OverlayTranslationModeButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not WpfButton button || button.Icon is not SymbolIcon symbolIcon) return;
 
             if (translationOnlyWindow == null)
             {
+                Close_OverlaySubtitleMode();
                 translationOnlyWindow = new Window
                 {
-                    Title = "Translation Only Mode",
+                    Title = "Overlay Translation",
                     Width = 800,
                     Height = 80,
                     MinWidth = 400,
@@ -437,6 +451,16 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        void Close_OverlayTranslationMode()
+        {
+            translationOnlyWindow?.Close();
+            translationOnlyWindow = null;
+
+            var button = overlayTranslationMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
+        }
+
         private void Logonly_OnClickButton_Click(object sender, RoutedEventArgs e)
         {
             if (logonly.Icon is SymbolIcon icon)
@@ -461,6 +485,34 @@ namespace LiveCaptionsTranslator
             subtitleWindow?.Close();
             translationOnlyWindow?.Close();
             base.OnClosed(e);
+
+            WindowsStateSave();
+        }
+
+        private void WindowsStateRestore()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\WinRegistry");
+            if (key != null)
+            {
+                int Width = int.Parse(key.GetValue("Width").ToString());
+                int Height = int.Parse(key.GetValue("Height").ToString());
+                int Top = int.Parse(key.GetValue("Top").ToString());
+                int Left = int.Parse(key.GetValue("Left").ToString());
+                this.Width = Width;
+                this.Height = Height;
+                this.Top = Top;
+                this.Left = Left;
+            }
+        }
+
+        private void WindowsStateSave()
+        {
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\WinRegistry");
+            key.SetValue("Width", (int)this.Width);
+            key.SetValue("Height", (int)this.Height);
+            key.SetValue("Top", (int)this.Top);
+            key.SetValue("Left", (int)this.Left);
+            key.Close();
         }
 
         private void CaptionLog_OnClickButton_Click(object sender, RoutedEventArgs e)
