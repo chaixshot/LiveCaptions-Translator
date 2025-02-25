@@ -80,8 +80,7 @@ namespace LiveCaptionsTranslator.models
         {
             int idleCount = 0;
             int syncCount = 0;
-            string originalLatest = "";
-            string historyLatest = "------------";
+            string captionLatest = "--------------------";
 
             while (true)
             {
@@ -91,7 +90,7 @@ namespace LiveCaptionsTranslator.models
                     continue;
                 }
 
-                bool captionTrim = false;
+                bool captionTrim = false; // Is caption textbox change to another sentence
                 string fullText = GetCaptions(App.Window).Trim();
                 if (string.IsNullOrEmpty(fullText))
                     continue;
@@ -135,36 +134,40 @@ namespace LiveCaptionsTranslator.models
                     idleCount = 0;
                     syncCount++;
 
-                    if (captionTrim)
-                    {
-                        string _originalLatest = originalLatest.Substring(2, originalLatest.Length - 4).ToLower();
-                        string _historyLatest = historyLatest.Substring(2, historyLatest.Length - 4).ToLower();
-                        if (_historyLatest != _originalLatest)
-                        {
-                            Task.Run(() => HistoryCapture(originalLatest));
-                            historyLatest = originalLatest;
-                        }
-                    }
-                    else
-                        originalLatest = newPresentedCaption;
-
                     PresentedCaption = newPresentedCaption;
                     OriginalCaption = latestCaption;
 
                     // When EOS is included, translate only the part before EOS.
                     int EOSIndex = OriginalCaption.IndexOfAny(PUNC_EOS);
                     if (EOSIndex != -1)
+                    {
                         OriginalCaption = OriginalCaption[0..(EOSIndex + 1)];
+                        captionTrim = true;
+                    }
 
                     if (Array.IndexOf(PUNC_EOS, OriginalCaption[^1]) != -1)
                     {
                         syncCount = 0;
                         TranslateFlag = true;
+                        captionTrim = true;
                     }
                     else if (Array.IndexOf(PUNC_COMMA, OriginalCaption[^1]) != -1)
                     {
                         syncCount = 0;
                         TranslateFlag = true;
+                        captionTrim = true;
+                    }
+
+                    // Push current caption to history without waiting for async
+                    if (captionTrim)
+                    {
+                        string _OriginalCaption = OriginalCaption.Substring(2, OriginalCaption.Length - 2).ToLower();
+                        string _captionLatest = captionLatest.Substring(2, captionLatest.Length - 2).ToLower();
+                        if (_OriginalCaption != _captionLatest) // Prevent from spamming
+                        {
+                            Task.Run(() => HistoryCapture(OriginalCaption));
+                            captionLatest = OriginalCaption;
+                        }
                     }
                 }
                 else
@@ -181,22 +184,25 @@ namespace LiveCaptionsTranslator.models
             }
         }
 
-        private async void HistoryCapture(string original)
+        private async Task HistoryCapture(string original)
         {
             string translated = "";
+            string targetLanguage = App.Settings.TargetLanguage;
+            string apiName = App.Settings.ApiName;
+            bool captionLog = App.Settings.EnableCaptionLog;
 
-            if (!LogonlyFlag)
+            if (!LogonlyFlag) // Log only mode no translate
             {
                 var controller = new TranslationController();
                 translated = await controller.Translate(original);
             }
 
             // Add caption log card
-            if (App.Settings.EnableCaptionLog)
+            if (captionLog)
             {
-                if (captionLog.Count >= 5)
-                    captionLog.Dequeue();
-                captionLog.Enqueue(new CaptionLogItem
+                if (this.captionLog.Count >= 5)
+                    this.captionLog.Dequeue();
+                this.captionLog.Enqueue(new CaptionLogItem
                 {
                     PresentedCaptionLog = original,
                     TranslatedCaptionLog = translated
@@ -207,12 +213,12 @@ namespace LiveCaptionsTranslator.models
             // Insert history database
             try
             {
-                if (LogonlyFlag)
+                if (LogonlyFlag) // Log only mode no translate
                 {
                     SQLiteHistoryLogger.LogTranslation(original, "N/A", "N/A", "LogOnly");
                 }
                 else
-                    SQLiteHistoryLogger.LogTranslation(original, translated, App.Settings.TargetLanguage, App.Settings.ApiName);
+                    SQLiteHistoryLogger.LogTranslation(original, translated, targetLanguage, apiName);
                 TranslationLogged?.Invoke();
             }
             catch (Exception ex)
