@@ -36,8 +36,8 @@ namespace LiveCaptionsTranslator
                 );
             };
             Loaded += (sender, args) => RootNavigation.Navigate(typeof(CaptionPage));
-
-            WindowsStateRestore();
+            
+            WindowStateRestore(this);
         }
 
         void TopmostButton_Click(object sender, RoutedEventArgs e)
@@ -280,19 +280,19 @@ namespace LiveCaptionsTranslator
 
                 subtitleWindow.Content = resizeGrid;
                 subtitleWindow.Show();
+                WindowStateRestore(subtitleWindow);
 
                 symbolIcon.Filled = true;
             }
             else
             {
-                subtitleWindow.Close();
-                subtitleWindow = null;
-                symbolIcon.Filled = false;
+                Close_OverlaySubtitleMode();
             }
         }
 
         void Close_OverlaySubtitleMode()
         {
+            WindowStateSave(subtitleWindow);
             subtitleWindow?.Close();
             subtitleWindow = null;
 
@@ -438,19 +438,20 @@ namespace LiveCaptionsTranslator
 
                 translationOnlyWindow.Content = resizeGrid;
                 translationOnlyWindow.Show();
+                WindowStateRestore(translationOnlyWindow);
 
                 symbolIcon.Filled = true;
+
             }
             else
             {
-                translationOnlyWindow.Close();
-                translationOnlyWindow = null;
-                symbolIcon.Filled = false;
+                Close_OverlayTranslationMode();
             }
         }
 
         void Close_OverlayTranslationMode()
         {
+            WindowStateSave(translationOnlyWindow);
             translationOnlyWindow?.Close();
             translationOnlyWindow = null;
 
@@ -470,18 +471,24 @@ namespace LiveCaptionsTranslator
                 }
                 else
                 {
-                    icon.Symbol = SymbolRegular.TextGrammarArrowLeft24; 
+                    icon.Symbol = SymbolRegular.TextGrammarArrowLeft24;
                     App.Captions.LogonlyFlag = true;
                 }
 
                 isLogonlyEnabled = !isLogonlyEnabled;
             }
         }
-        
+
+        private void MainWindow_BoundsChanged(object sender, EventArgs e)
+        {
+            var window = sender as Window;
+            WindowStateSave(window);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
-            subtitleWindow?.Close();
-            translationOnlyWindow?.Close();
+            Close_OverlaySubtitleMode();
+            Close_OverlayTranslationMode();
             base.OnClosed(e);
 
             WindowsStateSave();
@@ -511,6 +518,40 @@ namespace LiveCaptionsTranslator
             key.SetValue("Top", (int)this.Top);
             key.SetValue("Left", (int)this.Left);
             key.Close();
+        }
+
+        private void WindowStateSave(Window windows)
+        {
+            if (windows != null)
+            {
+                RegistryKey key = Registry.CurrentUser.CreateSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\" + windows.Title);
+                key.SetValue("Bounds", windows.RestoreBounds.ToString());
+                key.Close();
+            }
+        }
+
+        private void WindowStateRestore(Window windows)
+        {
+            if (windows != null)
+            {
+                RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\" + windows.Title);
+                if (key != null)
+                {
+                    Rect bounds = Rect.Parse(key.GetValue("Bounds").ToString());
+                    if (!bounds.IsEmpty)
+                    {
+                        windows.Top = bounds.Top;
+                        windows.Left = bounds.Left;
+
+                        // Restore the size only for a manually sized
+                        if (windows.SizeToContent == SizeToContent.Manual)
+                        {
+                            windows.Width = bounds.Width;
+                            windows.Height = bounds.Height;
+                        }
+                    }
+                }
+            }
         }
     }
 }
