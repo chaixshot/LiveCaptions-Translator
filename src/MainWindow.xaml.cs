@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Documents;
+using Microsoft.Win32;
 
 namespace LiveCaptionsTranslator
 {
@@ -36,8 +37,9 @@ namespace LiveCaptionsTranslator
                 );
             };
             Loaded += (sender, args) => RootNavigation.Navigate(typeof(CaptionPage));
-
+            
             EnableHistoryLog(App.Settings.EnableCaptionLog);
+            WindowStateRestore(this);
         }
 
         void TopmostButton_Click(object sender, RoutedEventArgs e)
@@ -75,12 +77,13 @@ namespace LiveCaptionsTranslator
         }
 
         // TODO: Extract them into a new SubtitleWindow class.
-        void SubtitleModeButton_Click(object sender, RoutedEventArgs e)
+        void OverlaySubtitleModeButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not WpfButton button || button.Icon is not SymbolIcon symbolIcon) return;
 
             if (subtitleWindow == null)
             {
+                Close_OverlayTranslationMode();
                 subtitleWindow = new Window
                 {
                     Title = "Subtitle Mode",
@@ -279,27 +282,38 @@ namespace LiveCaptionsTranslator
 
                 subtitleWindow.Content = resizeGrid;
                 subtitleWindow.Show();
+                WindowStateRestore(subtitleWindow);
 
                 symbolIcon.Filled = true;
             }
             else
             {
-                subtitleWindow.Close();
-                subtitleWindow = null;
-                symbolIcon.Filled = false;
+                Close_OverlaySubtitleMode();
             }
         }
 
+        void Close_OverlaySubtitleMode()
+        {
+            WindowStateSave(subtitleWindow);
+            subtitleWindow?.Close();
+            subtitleWindow = null;
+
+            var button = overlaySubtitleMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
+        }
+
         // TODO: Extract them into a new SubtitleWindow class.
-        void TranslationOnlyButton_Click(object sender, RoutedEventArgs e)
+        void OverlayTranslationModeButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not WpfButton button || button.Icon is not SymbolIcon symbolIcon) return;
 
             if (translationOnlyWindow == null)
             {
+                Close_OverlaySubtitleMode();
                 translationOnlyWindow = new Window
                 {
-                    Title = "Translation Only Mode",
+                    Title = "Overlay Translation",
                     Width = 800,
                     Height = 80,
                     MinWidth = 400,
@@ -426,15 +440,26 @@ namespace LiveCaptionsTranslator
 
                 translationOnlyWindow.Content = resizeGrid;
                 translationOnlyWindow.Show();
+                WindowStateRestore(translationOnlyWindow);
 
                 symbolIcon.Filled = true;
+
             }
             else
             {
-                translationOnlyWindow.Close();
-                translationOnlyWindow = null;
-                symbolIcon.Filled = false;
+                Close_OverlayTranslationMode();
             }
+        }
+
+        void Close_OverlayTranslationMode()
+        {
+            WindowStateSave(translationOnlyWindow);
+            translationOnlyWindow?.Close();
+            translationOnlyWindow = null;
+
+            var button = overlayTranslationMode as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+            symbolIcon.Filled = false;
         }
 
         private void Logonly_OnClickButton_Click(object sender, RoutedEventArgs e)
@@ -448,19 +473,87 @@ namespace LiveCaptionsTranslator
                 }
                 else
                 {
-                    icon.Symbol = SymbolRegular.TextGrammarArrowLeft24; 
+                    icon.Symbol = SymbolRegular.TextGrammarArrowLeft24;
                     App.Captions.LogonlyFlag = true;
                 }
 
                 isLogonlyEnabled = !isLogonlyEnabled;
             }
         }
-        
+
+        private void MainWindow_BoundsChanged(object sender, EventArgs e)
+        {
+            var window = sender as Window;
+            WindowStateSave(window);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
-            subtitleWindow?.Close();
-            translationOnlyWindow?.Close();
+            Close_OverlaySubtitleMode();
+            Close_OverlayTranslationMode();
             base.OnClosed(e);
+
+            WindowsStateSave();
+        }
+
+        private void WindowsStateRestore()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\");
+            if (key != null)
+            {
+                int Width = int.Parse(key.GetValue("Width").ToString());
+                int Height = int.Parse(key.GetValue("Height").ToString());
+                int Top = int.Parse(key.GetValue("Top").ToString());
+                int Left = int.Parse(key.GetValue("Left").ToString());
+                this.Width = Width;
+                this.Height = Height;
+                this.Top = Top;
+                this.Left = Left;
+            }
+        }
+
+        private void WindowsStateSave()
+        {
+            RegistryKey key = Registry.CurrentUser.CreateSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\");
+            key.SetValue("Width", (int)this.Width);
+            key.SetValue("Height", (int)this.Height);
+            key.SetValue("Top", (int)this.Top);
+            key.SetValue("Left", (int)this.Left);
+            key.Close();
+        }
+
+        private void WindowStateSave(Window windows)
+        {
+            if (windows != null)
+            {
+                RegistryKey key = Registry.CurrentUser.CreateSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\" + windows.Title);
+                key.SetValue("Bounds", windows.RestoreBounds.ToString());
+                key.Close();
+            }
+        }
+
+        private void WindowStateRestore(Window windows)
+        {
+            if (windows != null)
+            {
+                RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\" + windows.Title);
+                if (key != null)
+                {
+                    Rect bounds = Rect.Parse(key.GetValue("Bounds").ToString());
+                    if (!bounds.IsEmpty)
+                    {
+                        windows.Top = bounds.Top;
+                        windows.Left = bounds.Left;
+
+                        // Restore the size only for a manually sized
+                        if (windows.SizeToContent == SizeToContent.Manual)
+                        {
+                            windows.Width = bounds.Width;
+                            windows.Height = bounds.Height;
+                        }
+                    }
+                }
+            }
         }
 
         private void CaptionLog_OnClickButton_Click(object sender, RoutedEventArgs e)
