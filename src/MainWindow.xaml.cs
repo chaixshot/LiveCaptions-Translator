@@ -36,7 +36,7 @@ namespace LiveCaptionsTranslator
                 );
             };
             Loaded += (sender, args) => RootNavigation.Navigate(typeof(CaptionPage));
-
+            
             WindowStateRestore(this);
         }
 
@@ -490,6 +490,34 @@ namespace LiveCaptionsTranslator
             Close_OverlaySubtitleMode();
             Close_OverlayTranslationMode();
             base.OnClosed(e);
+
+            WindowsStateSave();
+        }
+
+        private void WindowsStateRestore()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\");
+            if (key != null)
+            {
+                int Width = int.Parse(key.GetValue("Width").ToString());
+                int Height = int.Parse(key.GetValue("Height").ToString());
+                int Top = int.Parse(key.GetValue("Top").ToString());
+                int Left = int.Parse(key.GetValue("Left").ToString());
+                this.Width = Width;
+                this.Height = Height;
+                this.Top = Top;
+                this.Left = Left;
+            }
+        }
+
+        private void WindowsStateSave()
+        {
+            RegistryKey key = Registry.CurrentUser.CreateSubKey("Software\\LiveCaptionsTranslator\\WindowBounds\\");
+            key.SetValue("Width", (int)this.Width);
+            key.SetValue("Height", (int)this.Height);
+            key.SetValue("Top", (int)this.Top);
+            key.SetValue("Left", (int)this.Left);
+            key.Close();
         }
 
         private void WindowStateSave(Window windows)
