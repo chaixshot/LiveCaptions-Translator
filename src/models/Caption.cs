@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 
 using LiveCaptionsTranslator.utils;
 using System.Diagnostics;
+using System.Windows.Media;
+using System.Windows;
 
 namespace LiveCaptionsTranslator.models
 {
@@ -45,6 +47,14 @@ namespace LiveCaptionsTranslator.models
         {
             public required string SourceText { get; set; }
             public required string TranslatedText { get; set; }
+            public double FontSizeOriginal { get; set; }
+            public double FontSizeTranslated { get; set; }
+            public double FontShadowOriginal { get; set; }
+            public double FontShadowTranslated { get; set; }
+            public Brush FontColor { get; set; }
+            public FontWeight FontWeightOriginal { get; set; }
+            public FontWeight FontWeightTranslated { get; set; }
+            public Visibility TranslationOnly { get; set; }
         }
         public Queue<CaptionLogItem> LogCards { get; } = new(6);
         public IEnumerable<CaptionLogItem> DisplayLogCards => LogCards.Reverse();
@@ -254,7 +264,16 @@ namespace LiveCaptionsTranslator.models
                 LogCards.Enqueue(new CaptionLogItem
                 {
                     SourceText = original,
-                    TranslatedText = translated
+                    TranslatedText = translated,
+                    FontSizeOriginal = App.Setting.SubtitleWindow.FontSize,
+                    FontSizeTranslated = App.Setting.SubtitleWindow.FontSize + 4,
+                    FontShadowOriginal = (App.Setting.SubtitleWindow.FontShadow == 3 ? 1.0 : 0.0),
+                    FontShadowTranslated = (App.Setting.SubtitleWindow.FontShadow >= 2 ? 1.0 : 0.0),
+                    FontColor = App.Setting.CCColorList[App.Setting.SubtitleWindow.FontColor],
+                    FontWeightOriginal = (App.Setting.SubtitleWindow.FontBold >= 3 ? FontWeights.Bold : FontWeights.Regular),
+                    FontWeightTranslated = (App.Setting.SubtitleWindow.FontBold >= 2 ? FontWeights.Bold : FontWeights.Regular),
+                    TranslationOnly = ((MainWindow.Instance?.SubtitleWindow != null && MainWindow.Instance.SubtitleWindow.IsTranslationOnly) ? Visibility.Collapsed : Visibility.Visible),
+
                 });
                 OnPropertyChanged("DisplayLogCards");
             }
