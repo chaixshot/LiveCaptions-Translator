@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows7.0</TargetFramework>
 		<SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -31,10 +31,10 @@
 		
 		<PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
 		
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.1" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
 		<PackageReference Include="System.Net.Http" Version="4.3.4" />
-		<PackageReference Include="System.Text.Json" Version="8.0.5" />
-		<PackageReference Include="WPF-UI" Version="4.0.1" />
+		<PackageReference Include="System.Text.Json" Version="9.0.8" />
+		<PackageReference Include="WPF-UI" Version="4.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>
