@@ -132,16 +132,5 @@ namespace LiveCaptionsTranslator
                 CaptionPage.Instance?.CollapseTranslatedCaption(enabled);
             }
         }
-
-        public void AutoHeightAdjust(int minHeight = -1, int maxHeight = -1)
-        {
-            if (minHeight > 0 && Height < minHeight)
-            {
-                Height = minHeight;
-                IsAutoHeight = true;
-            }
-            if (IsAutoHeight && maxHeight > 0 && Height > maxHeight)
-                Height = maxHeight;
-        }
     }
 }

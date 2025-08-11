@@ -93,13 +93,6 @@ namespace LiveCaptionsTranslator
         
         public void AutoHeight()
         {
-            if (Translator.Setting.MainWindow.CaptionLogEnabled)
-                (App.Current.MainWindow as MainWindow).AutoHeightAdjust(
-                    minHeight: CARD_HEIGHT * (Translator.Setting.MainWindow.CaptionLogMax + 1),
-                    maxHeight: CARD_HEIGHT * (Translator.Setting.MainWindow.CaptionLogMax + 1));
-            else
-                (App.Current.MainWindow as MainWindow).AutoHeightAdjust(
-                    maxHeight: (int)App.Current.MainWindow.MinHeight);
         }
     }
 }

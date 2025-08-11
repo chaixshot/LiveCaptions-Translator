@@ -13,11 +13,6 @@ namespace LiveCaptionsTranslator
         {
             InitializeComponent();
             ApplicationThemeManager.ApplySystemTheme();
-            
-            Loaded += (s, e) =>
-            {
-                (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(maxHeight: MIN_HEIGHT);
-            };
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
