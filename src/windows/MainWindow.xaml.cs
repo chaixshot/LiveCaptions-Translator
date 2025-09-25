@@ -13,7 +13,6 @@ namespace LiveCaptionsTranslator
     public partial class MainWindow : FluentWindow
     {
         public OverlayWindow? OverlayWindow { get; set; } = null;
-        public bool IsAutoHeight { get; set; } = true;
 
         public MainWindow()
         {
@@ -24,7 +23,6 @@ namespace LiveCaptionsTranslator
             {
                 SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
                 RootNavigation.Navigate(typeof(CaptionPage));
-                IsAutoHeight = true;
                 CheckForFirstUse();
                 CheckForUpdates();
             };
@@ -103,7 +101,6 @@ namespace LiveCaptionsTranslator
         {
             Translator.Setting.MainWindow.CaptionLogEnabled = !Translator.Setting.MainWindow.CaptionLogEnabled;
             ShowLogCard(Translator.Setting.MainWindow.CaptionLogEnabled);
-            CaptionPage.Instance?.AutoHeight();
         }
 
         private void MainWindow_LocationChanged(object sender, EventArgs e)
@@ -115,7 +112,6 @@ namespace LiveCaptionsTranslator
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             MainWindow_LocationChanged(sender, e);
-            IsAutoHeight = false;
         }
 
         public void ToggleTopmost(bool enabled)
@@ -209,18 +205,6 @@ namespace LiveCaptionsTranslator
                     icon.Symbol = SymbolRegular.HistoryDismiss24;
                 CaptionPage.Instance?.CollapseTranslatedCaption(enabled);
             }
-        }
-
-        public void AutoHeightAdjust(int minHeight = -1, int maxHeight = -1)
-        {
-            if (minHeight > 0 && Height < minHeight)
-            {
-                Height = minHeight;
-                IsAutoHeight = true;
-            }
-
-            if (IsAutoHeight && maxHeight > 0 && Height > maxHeight)
-                Height = maxHeight;
         }
 
         public void ShowSnackbar(string title, string message, bool isError = false)

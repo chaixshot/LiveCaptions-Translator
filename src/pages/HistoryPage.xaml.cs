@@ -30,7 +30,6 @@ namespace LiveCaptionsTranslator
             Loaded += async (s, e) =>
             {
                 await LoadHistory();
-                (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(minHeight: MIN_HEIGHT, maxHeight: MIN_HEIGHT);
                 Translator.TranslationLogged += OnTranslationLogged;
             };
             Unloaded += (s, e) =>
