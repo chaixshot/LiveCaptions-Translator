@@ -16,11 +16,6 @@ namespace LiveCaptionsTranslator
             ApplicationThemeManager.ApplySystemTheme();
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
             Version.Text = version;
-
-            Loaded += (s, e) =>
-            {
-                (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(minHeight: MIN_HEIGHT, maxHeight: MIN_HEIGHT);
-            };
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
