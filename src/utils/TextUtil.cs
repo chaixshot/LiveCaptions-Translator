@@ -4,7 +4,7 @@ namespace LiveCaptionsTranslator.utils
 {
     public static class TextUtil
     {
-        public static readonly char[] PUNC_EOS = ".?!。？！".ToCharArray();
+        public static readonly char[] PUNC_EOS = ".?!。？！，".ToCharArray();
         public static readonly char[] PUNC_COMMA = ",，、—\n".ToCharArray();
 
         public const int SHORT_THRESHOLD = 10;
